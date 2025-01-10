@@ -5,34 +5,54 @@ package main
 import (
     . "fmt"
     "runtime"
-    "time"
 )
 
 var i = 0
 
-func incrementing() {
-    //TODO: increment i 1000000 times
-    for j:=0; j<1000000; j++{
-        i++
-    }
+type Request struct{
+    op string
+    finished chan bool 
 }
 
-func decrementing() {
-    //TODO: decrement i 1000000 times
+func server(requests chan Request) {
+	for req := range requests {
+		switch req.op {
+		case "increment":
+			i++
+		case "decrement":
+			i--
+		case "read":
+			req.finished<-true
+		}
+	}
+}
+
+func incrementing(ch_a chan Request, finished chan bool) {
     for j:=0; j<1000000; j++{
-        i--
+        ch_a <- Request{op:"increment"}
     }
+    ch_a <- Request{op: "read", finished: finished}
+}
+
+func decrementing(ch_a chan Request, finished chan bool) {
+    for j:=0; j<1000000; j++{
+        ch_a <- Request{op:"decrement"}
+    }
+    ch_a <- Request{op: "read", finished: finished}
 }
 
 func main() {
-    // What does GOMAXPROCS do? What happens if you set it to 1?
     runtime.GOMAXPROCS(2)    
 	
-    // TODO: Spawn both functions as goroutines
-	go incrementing()
-    go decrementing()
-    // We have no direct way to wait for the completion of a goroutine (without additional synchronization of some sort)
-    // We will do it properly with channels soon. For now: Sleep.
-    time.Sleep(500*time.Millisecond)
+    ch_a := make(chan Request)
+    finished := make(chan bool)
+
+    go server(ch_a)
+	go incrementing(ch_a, finished)
+    go decrementing(ch_a, finished)
+
+    <-finished
+    <-finished
+
     Println("The magic number is:", i)
 }

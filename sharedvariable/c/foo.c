@@ -5,12 +5,15 @@
 #include <stdio.h>
 
 int i = 0;
+pthread_mutex_t lock;
 
 // Note the return type: void*
 void* incrementingThreadFunction(){
     // TODO: increment i 1_000_000 times
     for (int j=0; j<1000000; j++){
+        pthread_mutex_lock(&lock);
         i++;
+        pthread_mutex_unlock(&lock);
     }
     return NULL;
 }
@@ -18,26 +21,37 @@ void* incrementingThreadFunction(){
 void* decrementingThreadFunction(){
     // TODO: decrement i 1_000_000 times
     for (int j=0; j<1000000; j++){
+        pthread_mutex_lock(&lock);
         i--;
+        pthread_mutex_unlock(&lock);
     }
     return NULL;
 }
 
 
 int main(){
-    // TODO: 
-    // start the two functions as their own threads using `pthread_create`
-    // Hint: search the web! Maybe try "pthread_create example"?
-    pthread_t id1, id2;
-    pthread_create(&id1, 0, incrementingThreadFunction, 0);
-    pthread_create(&id2, 0, decrementingThreadFunction, 0);
+
+    pthread_t id[2];
     
-    // TODO:
-    // wait for the two threads to be done before printing the final result
-    // Hint: Use `pthread_join`   
-    pthread_join(id1, NULL);
-    pthread_join(id2, NULL); 
+    if (pthread_mutex_init(&lock, NULL) != 0) {
+        printf("Mutex init has failed\n"); 
+        return 1;
+    }
+   
+    if (pthread_create(&id[0], 0, incrementingThreadFunction, 0) != 0){
+        printf("Error when creating thread 1");
+        return 1;
+    }
+
+    if (pthread_create(&id[1], 0, decrementingThreadFunction, 0) != 0){
+        printf("Error when creating thread 2");
+        return 1;
+    }
+
+    pthread_join(id[0], NULL);
+    pthread_join(id[1], NULL); 
     
+    pthread_mutex_destroy(&lock);
     printf("The magic number is: %d\n", i);
     return 0;
 }
