@@ -3,4 +3,5 @@ Both the incrementing and the decrementing function shares a global variable. Wh
 task4: 
 I used pthread_mutex to make sure only one thread is active at the time since they share a value
 
+test
 
